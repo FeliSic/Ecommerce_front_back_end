@@ -50,59 +50,6 @@ async function fetchUserById(token: string): Promise<number> {
   return userId;
 }
 
-export async function createOrder(
-  req: NextApiRequest,
-  productId: string,
-): Promise<{ url: string; orderId: number }> {
-  await ensureTablesExist(); // Esperar a que existan las tablas
-
-  // Obtener el userId (esto depende de cómo estés manejando la autenticación)
-  const token = req.headers.authorization?.split(" ")[1] || "";
-  const userId = await fetchUserById(token);
-  if (!userId) {
-    throw new Error("No se encontró el usuario"); // Podrías lanzar un 401 aquí
-  }
-
-  // Obtener el producto y su precio
-  const product: AirtableProduct = await fetchProductById(productId);
-  if (!product) {
-    throw new Error("No se encontró el producto");
-  }
-
-  const amount = product.Precio; // Asegúrate de que este campo sea correcto
-
-  const order = {
-    productId,
-    userId,
-    amount,
-    paymentStatus: "pending",
-    createdAt: new Date(),
-  };
-
-  console.log("Valores de entrada:", { productId, userId, amount });
-
-  // Usar el método create de Sequelize para insertar la orden
-  const createdOrder = (await sequelizeClient
-    .model("Purchases")
-    .create(order)) as Purchases;
-
-  const orderId = createdOrder.id; // Obtener el ID de la orden creada
-
-  if (orderId === undefined) {
-    throw new Error("No se pudo crear la orden, ID indefinido");
-  }
-
-  // Aquí deberías integrar con MercadoPago para generar la URL de pago
-  const paymentUrl = await generatePaymentUrl(
-    orderId,
-    productId,
-    amount,
-    userId,
-  );
-
-  return { url: paymentUrl, orderId };
-}
-
 export async function confirmOrder(orderId: string) {
   await ensureTablesExist(); // ✅ Esperá a que existan las tablas
 
